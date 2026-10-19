@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.10)
+project(装甲板识别)
+set(CMAKE_CXX_STANDARD 17)
+find_package(OpenCV REQUIRED)
+add_executable(armor_detector main.cpp detector.cpp number_classifier.cpp show.cpp)
+target_include_directories(armor_detector PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(armor_detector ${OpenCV_LIBS})
