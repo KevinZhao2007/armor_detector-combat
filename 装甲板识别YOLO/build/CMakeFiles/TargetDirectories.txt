@@ -1,0 +1,3 @@
+/home/kevin/beginning/HOMEWORK/src/装甲板识别YOLO/build/CMakeFiles/YoloArmor.dir
+/home/kevin/beginning/HOMEWORK/src/装甲板识别YOLO/build/CMakeFiles/edit_cache.dir
+/home/kevin/beginning/HOMEWORK/src/装甲板识别YOLO/build/CMakeFiles/rebuild_cache.dir
