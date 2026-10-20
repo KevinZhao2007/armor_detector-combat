@@ -1,15 +1,13 @@
 #include "show.h"
 
-// ==========================================
 // 模块 1 的实现：全局变量赋值
-// ==========================================
 vector<GroundTruth> gt_list = {
     {1, -0.174340, +0.169600, +3.794632, -76.991, -51.243, -178.547, "armor_1(正面)"},
     {2, -0.142456, +0.176579, +4.088549, -109.737, -48.356, -155.388, "armor_2(背面)"},
     {3, +0.150773, +0.162930, +4.055556, -107.013, -51.282, -178.516, "armor_3(背面)"},
     {4, +0.119301, +0.183937, +3.762585, -74.016, -49.423, +158.278, "armor_4(正面)"}
-};
-// 【传统视觉角点顺序: 左上(0), 右上(1), 右下(2), 左下(3)】
+};//这里是装甲板比对用的真值目录，根据已经提供的真值来做匹配识别到的装甲板，这里是图一的真值
+// 传统视觉角点顺序: 左上(0), 右上(1), 右下(2), 左下(3)
 vector<Point3f> obj_points_trad = {
     {-117.5f, -27.5f, 0}, // 左上
     { 117.5f, -27.5f, 0}, // 右上
@@ -24,13 +22,14 @@ Mat camera_matrix = (Mat_<double>(3, 3) <<
 
 Mat dist_coeffs = (Mat_<double>(1, 5) << 
      0.0, 0.0, 0.0, 0.0, 0.0);
-bool isImage(const string& path) {
+bool isImage(const string& path) {//判断照片的格式，可以应对多种照片
     string ext = path.substr(path.find_last_of(".") + 1);
     for (auto& c : ext) c = tolower(c);
     return (ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "bmp");
 }
-
-void rotationToEuler(const Mat& R, double& roll, double& pitch, double& yaw) {
+//旋转矩阵转欧拉角
+void rotationToEuler(const Mat& R, double& roll, double& pitch, double& yaw)
+{
     double sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) + R.at<double>(1,0) * R.at<double>(1,0));
     bool singular = sy < 1e-6;
     if (!singular) {
@@ -43,7 +42,6 @@ void rotationToEuler(const Mat& R, double& roll, double& pitch, double& yaw) {
         yaw   = 0;
     }
 }
-
 // 将欧拉角转为旋转矩阵 (用于反推相机世界系姿态)
 Mat eulerToRmat(double roll, double pitch, double yaw) {
     double r = roll * CV_PI / 180.0, p = pitch * CV_PI / 180.0, y = yaw * CV_PI / 180.0;
@@ -53,9 +51,7 @@ Mat eulerToRmat(double roll, double pitch, double yaw) {
     return Rz * Ry * Rx; 
 }
 
-// ==========================================
 // 核心：计算法线与世界系位姿
-// ==========================================
 void computeNormalsAndWorldPose(PoseResult& res) {
     // 1. 提取相机系外法线
     // 根据文档：1,3号板法线为局部Y轴(列1)，2,4号板法线为局部X轴(列0)
@@ -70,7 +66,7 @@ void computeNormalsAndWorldPose(PoseResult& res) {
     // 2. 构建相机在世界系的平移 (文档值)
     Mat t_world_cam = (Mat_<double>(3, 1) << 0.077834, 0.000761, 0.500196);
 
-    // 3. 构建相机在世界系的旋转 R_wc (利用文档 armor_1 反推)
+    // 3. 构建相机在世界系的旋转 R_wc 
     // R_w_world_armor1 = R_wc * R_cam_armor1  =>  R_wc = R_w_world_armor1 * (R_cam_armor1)^T
     Mat R_wc_1 = eulerToRmat(14.999, 0.158, 38.549);
     Mat R_cam_1 = eulerToRmat(-76.991, -51.243, -178.547);
@@ -90,7 +86,7 @@ void computeNormalsAndWorldPose(PoseResult& res) {
     res.tvec_world = t_world_armor * 1000.0; // 存回 mm
     res.R_world = R_w_world;
 }
-
+//处理结算失败的情况
 PoseResult evaluatePose(const vector<Point2f>& image_points, const vector<Point3f>& obj_points) {
     PoseResult res;
     bool success = solvePnP(obj_points, image_points, camera_matrix, dist_coeffs, res.rvec, res.tvec);
@@ -101,7 +97,6 @@ PoseResult evaluatePose(const vector<Point2f>& image_points, const vector<Point3
         res.is_valid = false;
         return res;
     }
-
     res.is_valid = true; // 标记解算成功
 
     res.sol_x = res.tvec.at<double>(0) / 1000.0;
@@ -123,9 +118,8 @@ PoseResult evaluatePose(const vector<Point2f>& image_points, const vector<Point3
     res.dz = (res.sol_z - res.gt.tz) * 1000.0;
     res.dist_3d = sqrt(res.dx*res.dx + res.dy*res.dy + res.dz*res.dz);
 
-    // ======= 新增：计算世界系位姿与外法线 =======
+    //新增：计算世界系位姿与外法线
     computeNormalsAndWorldPose(res);
-    // ============================================
 
     cout << "--- 匹配装甲板: " << res.gt.desc << " ---" << endl;
     cout << "  [位置] 解算:(" << res.sol_x << "," << res.sol_y << "," << res.sol_z << ")m | 真值:(" << res.gt.tx << "," << res.gt.ty << "," << res.gt.tz << ")m" << endl;
@@ -150,10 +144,7 @@ void drawNormal(Mat& img, const PoseResult& res) {
     cv::arrowedLine(img, pts_2d[0], pts_2d[1], Scalar(255, 0, 255), 2, 8, 0, 0.2);
     putText(img, "Normal", pts_2d[1], FONT_HERSHEY_SIMPLEX, 0.4, Scalar(255, 0, 255), 1);
 }
-
-// ==========================================
 // 可视化绘制
-// ==========================================
 void drawTraditionalResult(Mat& img, const Armor& a, const PoseResult& res) {
     for (int k = 0; k < 4; k++) line(img, a.corners[k], a.corners[(k+1)%4], Scalar(0, 165, 255), 2);
     for (const auto* l : { &a.left, &a.right }) {
