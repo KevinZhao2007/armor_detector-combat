@@ -1,10 +1,9 @@
 #include "number_classifier.hpp"
 
-NumberClassifier::NumberClassifier(const std::string& model_path, const cv::Size& input_size)
-    : input_size_(input_size)
+NumberClassifier::NumberClassifier(const std::string& model_path, const cv::Size& input_size): input_size_(input_size)
 {
-    net_ = cv::dnn::readNetFromONNX(model_path);
-    net_.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+    net_ = cv::dnn::readNetFromONNX(model_path);//加载神经网络模型
+    net_.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);//设置推理后端
     net_.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
 }
 
@@ -20,16 +19,16 @@ void NumberClassifier::classify(const cv::Mat& src, std::vector<YoloArmor>& armo
         };
         
         std::vector<cv::Point2f> dst_pts = {
-            cv::Point2f(0, 0),
-            cv::Point2f(input_size_.width - 1, 0),
-            cv::Point2f(input_size_.width - 1, input_size_.height - 1),
-            cv::Point2f(0, input_size_.height - 1)
+            cv::Point2f(0, 0),//变换后目标矩形左上
+            cv::Point2f(input_size_.width - 1, 0),//右上
+            cv::Point2f(input_size_.width - 1, input_size_.height - 1),//右下
+            cv::Point2f(0, input_size_.height - 1)//左下
         };
-
+          //计算透视变换矩阵
         cv::Mat warp_mat = cv::getPerspectiveTransform(src_pts, dst_pts);
-        cv::Mat roi;
+        cv::Mat roi;  //透视变换，获得装甲板区域
         cv::warpPerspective(src, roi, warp_mat, input_size_, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-
+    //图像预处理
         cv::Mat gray;
         cv::cvtColor(roi, gray, cv::COLOR_BGR2GRAY);
 
