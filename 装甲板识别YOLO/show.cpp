@@ -1,9 +1,7 @@
 #include "show.h"
 
-// ==========================================
 // 模块 1 的实现：在这里给全局变量赋值
-// ==========================================
-// 对应 图3.md 真值数据 (相机光学系下)
+// 对应 图3.md 真值数据 (相机光学系下)，用于匹配装甲板
 vector<GroundTruth> gt_list = {
     {1, -0.179673, +0.053321, +1.746903, +115.614, -61.812, -9.306, "armor_1(背面)"},
     {2, +0.102393, +0.059418, +1.835529, +124.132, -55.870, -36.558, "armor_2(背面)"},
@@ -25,16 +23,13 @@ Mat camera_matrix = (Mat_<double>(3, 3) <<
 Mat dist_coeffs = (Mat_<double>(1, 5) << 
     0.0, 0.0, 0.0, 0.0, 0.0
 );
-
-// ==========================================
-// 模块 2 & 3 的实现（你原本的逻辑）
-// ==========================================
+//照片格式判断
 bool isImage(const string& path) {
     string ext = path.substr(path.find_last_of(".") + 1);
     for (auto& c : ext) c = tolower(c);
     return (ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "bmp");
 }
-
+//相机矩阵转换欧拉角
 void rotationToEuler(const Mat& R, double& roll, double& pitch, double& yaw) {
     double sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) + R.at<double>(1,0) * R.at<double>(1,0));
     bool singular = sy < 1e-6;
@@ -58,9 +53,7 @@ Mat eulerToRmat(double roll, double pitch, double yaw) {
     return Rz * Ry * Rx; 
 }
 
-// ==========================================
 // 核心：计算法线与世界系位姿
-// ==========================================
 void computeNormalsAndWorldPose(PoseResult& res) {
     // 1. 提取相机系外法线
     // 根据文档：1,3号板法线为局部Y轴(列1)，2,4号板法线为局部X轴(列0)
@@ -103,7 +96,7 @@ PoseResult evaluatePose(const vector<Point2f>& image_points, const vector<Point3
         cout << "[警告] PnP 解算失败，跳过此目标。" << endl;
         res.is_valid = false;
         return res;
-    }
+    }//处理装甲板解算失败的情况
 
     res.is_valid = true; // 标记解算成功
     res.sol_x = res.tvec.at<double>(0) / 1000.0;
@@ -125,14 +118,12 @@ PoseResult evaluatePose(const vector<Point2f>& image_points, const vector<Point3
     res.dz = (res.sol_z - res.gt.tz) * 1000.0;
     res.dist_3d = sqrt(res.dx*res.dx + res.dy*res.dy + res.dz*res.dz);
 
-    // ======= 新增：计算世界系位姿与外法线 =======
+    // 新增：计算世界系位姿与外法线 
     computeNormalsAndWorldPose(res);
-    // ============================================
 
     cout << "--- 匹配装甲板: " << res.gt.desc << " ---" << endl;
     cout << "  [位置] 解算:(" << res.sol_x << "," << res.sol_y << "," << res.sol_z << ")m | 真值:(" << res.gt.tx << "," << res.gt.ty << "," << res.gt.tz << ")m" << endl;
     cout << "  [误差] dx=" << res.dx << "mm, dy=" << res.dy << "mm, dz=" << res.dz << "mm | 3D误差=" << res.dist_3d << "mm" << endl;
-    
     // 打印新增的外法线与世界系信息
     cout << "  [相机系法线]: (" << res.normal_cam.at<double>(0) << ", " << res.normal_cam.at<double>(1) << ", " << res.normal_cam.at<double>(2) << ")" << endl;
     cout << "  [世界系位置]: (" << res.tvec_world.at<double>(0) << ", " << res.tvec_world.at<double>(1) << ", " << res.tvec_world.at<double>(2) << ") mm" << endl;
@@ -153,9 +144,7 @@ void drawNormal(Mat& img, const PoseResult& res) {
     putText(img, "Normal", pts_2d[1], FONT_HERSHEY_SIMPLEX, 0.4, Scalar(255, 0, 255), 1);
 }
 
-// ==========================================
 // 可视化绘制
-// ==========================================
 void drawYoloResult(Mat& img, const YoloArmor& armor, const PoseResult& res) {
     rectangle(img, armor.bbox, Scalar(0, 255, 0), 1);
     for (int i = 0; i < 4; ++i) {
