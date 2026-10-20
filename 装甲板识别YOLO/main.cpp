@@ -10,7 +10,7 @@ using namespace cv;
 int main(int argc, char** argv) {
     string input_path = (argc > 1) ? argv[1] : "test.avi";
     bool image_mode = isImage(input_path);
-
+    //输入类型的判别
     VideoCapture cap(input_path);
     if (!cap.isOpened()) {
         cerr << "无法打开文件: " << input_path << endl;
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
     // 初始化 YOLO 模型 (请确保路径正确)
     YoloDetector yolo("Infantry-v8n-fp16-20260726-D1.8w-B16.onnx", 0.5f, 0.45f);
-    NumberClassifier num_clf("mlp.onnx", Size(28, 20)); // 如果 YOLO 端到端输出类别，此模块可选
+    NumberClassifier num_clf("mlp.onnx", Size(28, 20)); 
 
     Mat frame;
     while (cap.read(frame)) {
@@ -37,20 +37,23 @@ int main(int argc, char** argv) {
 
         // 1. 检测
         auto armors = yolo.detect(frame);
-        num_clf.classify(frame, armors); // 如果不用 MLP，可注释
+        num_clf.classify(frame, armors); 
 
         Mat vis_bgr = frame.clone();
-        if (armors.empty()) {
+        //未识别到装甲板处理
+        if (armors.empty()) 
+        {
             putText(vis_bgr, "No Armor Detected", Point(50, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
             cout << "当前帧未检测到装甲板。" << endl;
-        } else {
+        } else 
+        {
             for (const auto& armor : armors) {
                 if (armor.points.size() != 4) continue;
 
                 // 2. 解算与对比
                 PoseResult res = evaluatePose(armor.points, obj_points_yolo);
 
-                // 【新增：安检2】处理解算失败的情况
+                // 处理解算失败的情况
                 if (!res.is_valid) {
                     putText(vis_bgr, "PnP Failed", armor.points[0], FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255), 2);
                     continue; // 跳过画图，直接看下一个装甲板
@@ -61,7 +64,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        // 4. 输入输出处理 (保持不变)
+        // 4. 输入输出处理
         if (image_mode) {
             imwrite("result_image_yolo.jpg", vis_bgr);
             break;
