@@ -9,9 +9,9 @@ using namespace cv;
 class NumberClassifier
 {
 public:
-    // model_path: mlp.onnx 路径
+    // model_path: mlp.onnx 路径（这里将模型直接放到build目录下）
     // threshold:  置信度阈值，低于此值判为无效
-    // input_size: 模型输入尺寸（根据你的 MLP 训练时的输入大小设置）
+    // input_size: 模型输入尺寸
     NumberClassifier(const string& model_path,
                      float threshold = 0.7f,
                      const Size& input_size = Size(20, 28));
