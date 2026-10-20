@@ -26,7 +26,7 @@ void PnpSolver::solve(const std::vector<YoloArmor>& armors, const cv::Mat& camer
 
         cv::Mat rvec, tvec;
         bool success = cv::solvePnP(obj_pts, armor.points, camera_matrix, dist_coeffs, rvec, tvec);
-        
+        //判别PNP是否成功
         if (success) {
             std::cout << "PnP 成功! Z距离 = " << tvec.at<double>(2) << " mm" << std::endl;
         }
