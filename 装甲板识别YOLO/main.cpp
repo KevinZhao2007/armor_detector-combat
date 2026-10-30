@@ -254,7 +254,7 @@ int main(int argc, char** argv)
 {
     string input_path = (argc > 1) ? argv[1] : "test.avi";   // 默认仍是 test.avi
     bool image_mode = isImage(input_path);
-
+    //输入类型的判别
     VideoCapture cap(input_path);
     if (!cap.isOpened()) {
         cerr << "无法打开文件: " << input_path << endl;

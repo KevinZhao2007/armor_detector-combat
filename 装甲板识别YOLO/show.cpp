@@ -44,7 +44,7 @@ PoseResult evaluatePose(const vector<Point2f>& image_points, const vector<Point3
         cout << "[警告] PnP 解算失败，跳过此目标。" << endl;
         res.is_valid = false;
         return res;
-    }
+    }//处理装甲板解算失败的情况
 
     res.is_valid = true; // 标记解算成功
     res.sol_x = res.tvec.at<double>(0) / 1000.0;

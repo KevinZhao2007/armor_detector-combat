@@ -40,7 +40,7 @@ vector<YoloArmor> YoloDetector::detect(const Mat& img)
 {
     vector<YoloArmor> armors;
 
-    // ================= 1. 预处理 =================
+    // 1. 预处理
     // 如果你需要保持长宽比，请改用 Letterbox，这里使用直接 Resize
     Mat resized;
     resize(img, resized, input_size_);
@@ -58,14 +58,14 @@ vector<YoloArmor> YoloDetector::detect(const Mat& img)
         input_shape.data(), input_shape.size()
     );
 
-    // ================= 3. 执行推理 =================
+    // 3. 执行推理
     auto output_tensors = session_.Run(
         Ort::RunOptions{nullptr}, 
         input_names_.data(), &input_tensor, 1, 
         output_names_.data(), 1
     );
 
-    // ================= 4. 解析输出 =================
+    //4. 解析输出
     float* output_data = output_tensors[0].GetTensorMutableData<float>();
     auto output_shape = output_tensors[0].GetTensorTypeAndShapeInfo().GetShape();
     
