@@ -3,12 +3,13 @@
 #include <opencv2/dnn.hpp>
 #include "detector.hpp"
 using namespace std;
+using namespace cv;
 class NumberClassifier {
 public:
-    NumberClassifier(const std::string& model_path, const cv::Size& input_size = cv::Size(28, 20));
-    void classify(const cv::Mat& src, std::vector<YoloArmor>& armors);
+    NumberClassifier(const string& model_path, const Size& input_size = Size(28, 20));
+    void classify(const Mat& src, vector<YoloArmor>& armors);
 
 private:
-    cv::dnn::Net net_;
-    cv::Size input_size_;
+    dnn::Net net_;
+    Size input_size_;
 };

@@ -43,9 +43,6 @@ bool isImage(const string& path);
 void rotationToEuler(const Mat& R, double& roll, double& pitch, double& yaw);
 PoseResult evaluatePose(const vector<Point2f>& image_points, const vector<Point3f>& obj_points);
 
-// 新增：世界系转换与法线计算
-void computeNormalsAndWorldPose(PoseResult& res);
-void drawNormal(Mat& img, const PoseResult& res);
 
 // 绘制函数
 void drawYoloResult(Mat& img, const YoloArmor& armor, const PoseResult& res);

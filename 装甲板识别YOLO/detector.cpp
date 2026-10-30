@@ -1,8 +1,9 @@
 #include "detector.hpp"
 #include <iostream>
-#include <numeric> // for std::iota
-
-YoloDetector::YoloDetector(const std::string& model_path, float conf_threshold, float nms_threshold)
+#include <numeric> // for iota
+using namespace std;
+using namespace cv;
+YoloDetector::YoloDetector(const string& model_path, float conf_threshold, float nms_threshold)
     : conf_thresh_(conf_threshold), nms_thresh_(nms_threshold)
 {
     // 1. 设置 Session 选项
@@ -23,32 +24,32 @@ YoloDetector::YoloDetector(const std::string& model_path, float conf_threshold, 
     auto input_shape = session_.GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
     // YOLO 输入通常是 [1, 3, H, W]
     if (input_shape.size() == 4) {
-        input_size_ = cv::Size((int)input_shape[3], (int)input_shape[2]);
+        input_size_ = Size((int)input_shape[3], (int)input_shape[2]);
     } else {
-        std::cerr << "[YoloDetector] 警告: 无法自动获取输入尺寸，默认使用 640x640" << std::endl;
-        input_size_ = cv::Size(640, 640);
+        cerr << "[YoloDetector] 警告: 无法自动获取输入尺寸，默认使用 640x640" << endl;
+        input_size_ = Size(640, 640);
     }
     
-    std::cout << "[YoloDetector] 模型加载成功!" << std::endl;
-    std::cout << "  输入尺寸: " << input_size_.width << "x" << input_size_.height << std::endl;
-    std::cout << "  输入节点: " << input_names_[0] << std::endl;
-    std::cout << "  输出节点: " << output_names_[0] << std::endl;
+    cout << "[YoloDetector] 模型加载成功!" << endl;
+    cout << "  输入尺寸: " << input_size_.width << "x" << input_size_.height << endl;
+    cout << "  输入节点: " << input_names_[0] << endl;
+    cout << "  输出节点: " << output_names_[0] << endl;
 }
 
-std::vector<YoloArmor> YoloDetector::detect(const cv::Mat& img)
+vector<YoloArmor> YoloDetector::detect(const Mat& img)
 {
-    std::vector<YoloArmor> armors;
+    vector<YoloArmor> armors;
 
     // ================= 1. 预处理 =================
     // 如果你需要保持长宽比，请改用 Letterbox，这里使用直接 Resize
-    cv::Mat resized;
-    cv::resize(img, resized, input_size_);
+    Mat resized;
+    resize(img, resized, input_size_);
     
     // 转为 float32，归一化到 [0,1]，并交换 R 和 B 通道 (YOLO 期望 RGB)
-    cv::Mat blob = cv::dnn::blobFromImage(resized, 1.0 / 255.0, input_size_, cv::Scalar(), true, false, CV_32F);
+    Mat blob = dnn::blobFromImage(resized, 1.0 / 255.0, input_size_, Scalar(), true, false, CV_32F);
 
     // ================= 2. 准备输入 =================
-    std::vector<int64_t> input_shape = {1, 3, input_size_.height, input_size_.width};
+    vector<int64_t> input_shape = {1, 3, input_size_.height, input_size_.width};
     size_t input_tensor_size = blob.total() * blob.elemSize();
     
     Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
@@ -73,17 +74,14 @@ std::vector<YoloArmor> YoloDetector::detect(const cv::Mat& img)
 
     int attr_size = output_shape[1];   // 属性数 (4个bbox + 类别数 + 8个关键点)
     int num_anchors = output_shape[2]; // 预测框数量 (如 8400)
-
-    // 推算类别数 (开源模型属性数通常是 21)
-    // 21 = 4 (bbox) + 8 (4个关键点) + num_classes => num_classes = 9
     int num_classes = attr_size - 12; 
     
     // 如果无法推断，保底处理
     if (num_classes <= 0) return armors;
 
-    std::vector<cv::Rect> boxes;
-    std::vector<float> confidences;
-    std::vector<YoloArmor> temp_armors;
+    vector<Rect> boxes;
+    vector<float> confidences;
+    vector<YoloArmor> temp_armors;
 
     // 遍历每一个预测框
     for (int i = 0; i < num_anchors; ++i) {
@@ -115,10 +113,10 @@ std::vector<YoloArmor> YoloDetector::detect(const cv::Mat& img)
             int height = int(h * img.rows / input_size_.height);
 
             // 限制在图像边界内
-            left = std::max(0, std::min(left, img.cols - 1));
-            top = std::max(0, std::min(top, img.rows - 1));
-            width = std::min(width, img.cols - left);
-            height = std::min(height, img.rows - top);
+            left = max(0, min(left, img.cols - 1));
+            top = max(0, min(top, img.rows - 1));
+            width = min(width, img.cols - left);
+            height = min(height, img.rows - top);
 
             boxes.emplace_back(left, top, width, height);
             confidences.push_back(max_conf);
@@ -141,8 +139,8 @@ std::vector<YoloArmor> YoloDetector::detect(const cv::Mat& img)
     }
 
     // ================= 5. NMS (非极大值抑制) =================
-    std::vector<int> indices;
-    cv::dnn::NMSBoxes(boxes, confidences, conf_thresh_, nms_thresh_, indices);
+    vector<int> indices;
+    dnn::NMSBoxes(boxes, confidences, conf_thresh_, nms_thresh_, indices);
     
     for (int idx : indices) {
         armors.push_back(temp_armors[idx]);
