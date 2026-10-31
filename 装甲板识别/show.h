@@ -3,7 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <opencv2/opencv.hpp>
-#include "detector.hpp" // 如果传统视觉，确保 Armor 定义在这里
+#include "detector.hpp" 
 
 using namespace std;
 using namespace cv;

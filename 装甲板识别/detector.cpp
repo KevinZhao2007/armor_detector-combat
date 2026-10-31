@@ -2,14 +2,14 @@
 #include<iostream>
 using namespace std;
 using namespace cv;
-Mat Detector::preprocessImage(const Mat& bgr_img)
+Mat Detector::preprocessImage(const Mat& bgr_img) //灰度二值化（来自FYT战队）
 {
     Mat gray, binary;
     cvtColor(bgr_img, gray, COLOR_BGR2GRAY);
     threshold(gray, binary, params_.binary_thres, 255, THRESH_BINARY);
     return binary;
 }
-// ========== 查找灯条 ==========
+//查找灯条
 vector<Light> Detector::findLights(const Mat& binary, const Mat& bgr)
 {
     vector<vector<Point>> contours;
@@ -19,17 +19,16 @@ vector<Light> Detector::findLights(const Mat& binary, const Mat& bgr)
     for (const auto& contour : contours)
     {
         if (contour.size() < 5) continue;
-
         Light light(contour);
 
         // 形状筛选
-        if (light.width > light.length) continue;
+        if (light.width > light.length) continue; //不是竖着的扔掉
         float ratio = light.width / light.length;
         bool ratio_ok = params_.min_ratio < ratio && ratio < params_.max_ratio;
         bool angle_ok = light.tilt_angle < params_.max_tilt_angle;
-        if (!ratio_ok || !angle_ok) continue;
-        if (light.tilt_angle > params_.max_tilt_angle) continue;
-        // 颜色判断：统计轮廓上 R 和 B 通道之和
+        if (!ratio_ok || !angle_ok) continue;    //长宽比筛选
+        if (light.tilt_angle > params_.max_tilt_angle) continue;    //最大倾斜角筛选
+        // 颜色判断：统计轮廓上R和B通道之和
         int sum_r = 0, sum_b = 0;
         for (const auto& p : contour)
         {
@@ -41,13 +40,11 @@ vector<Light> Detector::findLights(const Mat& binary, const Mat& bgr)
         int avg_r = sum_r / contour_size;
         int avg_b = sum_b / contour_size;
         int diff = avg_r - avg_b;
-
-        // 【修改点 2：过滤不够红/不够蓝的灯条】
-        // 如果 R 比 B 大很多，判定为红，但要求 R 的绝对亮度 avg_r 不能太低（比如大于 100）
-        if (diff > params_.color_diff_thresh ) 
+        //相对亮度+绝对亮度筛选
+        //模拟图片尽量把绝对亮度筛选去掉，很容易漏筛
+        if (diff > params_.color_diff_thresh&&avg_a>100 ) 
             light.color = 1; // RED
-        // 如果 B 比 R 大很多，判定为蓝，同样要求 B 的绝对亮度 avg_b 不能太低
-        else if (-diff > params_.color_diff_thresh) 
+        else if (-diff > params_.color_diff_thresh&&avg_b>100) 
             light.color = 2; // BLUE
         else 
             continue; // 颜色纯度不够或太暗，丢弃
@@ -56,7 +53,7 @@ vector<Light> Detector::findLights(const Mat& binary, const Mat& bgr)
     return lights;
 }
 
-// ========== 灯条配对 ==========
+//灯条配对 
 vector<Armor> Detector::matchLights(const vector<Light>& lights)
 {
     vector<Armor> armors;
@@ -67,7 +64,7 @@ vector<Armor> Detector::matchLights(const vector<Light>& lights)
             const Light& l1 = lights[i];
             const Light& l2 = lights[j];
 
-            if (l1.color != l2.color) continue;
+            if (l1.color != l2.color) continue;//灯条颜色必须相同
             float avg_len_debug = (l1.length + l2.length) / 2;
             float avg_wid_debug = (l1.width + l2.width) / 2;
             float dx_debug = l2.center.x - l1.center.x;
@@ -115,7 +112,7 @@ vector<Armor> Detector::matchLights(const vector<Light>& lights)
     return armors;
 }
 
-// ========== 主检测入口 ==========
+//主检测入口
 vector<Armor> Detector::detect(const Mat& bgr_img)
 {
     Mat binary = preprocessImage(bgr_img);

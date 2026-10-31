@@ -153,7 +153,8 @@ int main(int argc, char** argv)
         tracker.update(obs, t_img);
         // 6. 四块板重投影
         //  注意：这里画的是"状态预测出的 4 块板"，不是检测到的板。
-        //  如果 4 块（包括当前看不到的那 3 块）都贴住图像上的板，就说明状态、观测方程、坐标变换全都对了。
+        //  如果 4 块（包括当前看不到的那 3 块）都贴住图像上的板，
+        //  就说明状态、观测方程、坐标变换全都对了。
         const bool pred_ok = tracker.alive() && tracker.sane()&& (!kDrawOnlyWhenTracking || tracker.tracking());
         if (pred_ok) 
         {

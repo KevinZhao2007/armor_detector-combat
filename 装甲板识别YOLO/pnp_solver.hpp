@@ -1,13 +1,14 @@
 #pragma once
 #include <opencv2/opencv.hpp>
 #include "detector.hpp"
-
+using namespace std;
+using namespace cv;
 class PnpSolver {
 public:
     PnpSolver();
-    void solve(const std::vector<YoloArmor>& armors, const cv::Mat& camera_matrix, const cv::Mat& dist_coeffs);
+    void solve(const vector<YoloArmor>& armors, const Mat& camera_matrix, const Mat& dist_coeffs);
 
 private:
-    std::vector<cv::Point3f> small_armor_obj_pts;
-    std::vector<cv::Point3f> large_armor_obj_pts;
+    vector<Point3f> small_armor_obj_pts;
+    vector<Point3f> large_armor_obj_pts;
 };

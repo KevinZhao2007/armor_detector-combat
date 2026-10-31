@@ -8,9 +8,10 @@
 using namespace std;
 using namespace cv;
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     string input_path = (argc > 1) ? argv[1] : "test.avi";
-    bool image_mode = isImage(input_path);
+    bool image_mode = isImage(input_path);//默认读取视频，照片需要加路径名称
 
     VideoCapture cap(input_path);
     if (!cap.isOpened()) {
@@ -56,7 +57,7 @@ int main(int argc, char** argv) {
                 // 2. 解算与对比
                 PoseResult res = evaluatePose(a.corners, obj_points_trad);
 
-                // 【新增：安检2】处理解算失败的情况
+                // 处理解算失败的情况
                 if (!res.is_valid) {
                     putText(vis_bgr, "PnP Failed", a.center, FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255), 2);
                     continue; // 跳过画图
